@@ -14,6 +14,7 @@ public:
 	int id;
 	int duration;
 	bool running;
+	bool completed;
 	vector<int> dependencies;
 	Step();
 	Step(int _id, string _desc, int _dur, vector<int> _deps);

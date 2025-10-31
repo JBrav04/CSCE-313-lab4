@@ -73,6 +73,8 @@ void makeTimer( Step *timerID, int expire) // Given
     its.it_value.tv_sec = expire;
     its.it_value.tv_nsec = 0;
     timer_settime(timerID->t_id, 0, &its, NULL);
+
+	//cout << "Starting timer for Step " << timerID->id << " (" << expire << " sec)" << endl;
 }
 
 // Triggers when the time for the step has elapsed.
@@ -82,23 +84,26 @@ void makeTimer( Step *timerID, int expire) // Given
 // TO COMPLETE Section 2
 static void timerHandler( int sig, siginfo_t *si, void *uc )
 {
-	// Retrieve timer pointer from the si->si_value
-    Step* comp_item = (Step*)si->si_value.sival_ptr;
+	Step* comp_item = (Step*)si->si_value.sival_ptr;
 
-	/* TODO This Section - 2 */
-	// Officially complete the step using completedSteps and completeCount
-
-	// Ready to remove that dependency, call the trigger for the appropriate handler
-	/* End Section - 2 */
+    completedSteps->push_back(comp_item->id);
+    comp_item->PrintComplete();
+	cout.flush();
+    completeCount++;
+    comp_item->running = false;
+    comp_item->completed = true;
+    
+    raise(SIGUSR1);
 }
 
 // Removes the copmleted steps from the dependency list of the step list.
 // Utilize the completedSteps vector and the RemoveDependency method.
 // To Complete - Section 3
 void RemoveDepHandler(int sig) {
-	/* TODO This Section - 3 */
-	// Foreach step that has been completed since last run, remove it as a dependency
-	/* End Section - 3 */
+	for (int id : *completedSteps) {
+		recipeSteps->RemoveDependency(id);
+	}
+	completedSteps->clear();
 }
 
 // Associate the signals to the signal handlers as appropriate
@@ -122,12 +127,37 @@ int main(int argc, char **argv)
     sa.sa_sigaction = timerHandler;
     sigemptyset(&sa.sa_mask);
 
-	/* TODO This Section - 1 */
-	// Associate the signal SIGRTMIN with the sa using the sigaction function
-	// Associate the appropriate handler with the SIGUSR1 signal, for removing dependencies
-	
-	// Until all steps have been completed, check if steps are ready to be run and create a timer for them if so
-	/* End Section - 1 */
+	sigaction(SIGRTMIN, &sa, NULL);
+	signal(SIGUSR1, RemoveDepHandler);
+
+	sigset_t block_mask, empty_mask;
+
+    sigemptyset(&block_mask);
+    sigaddset(&block_mask, SIGRTMIN);
+    sigaddset(&block_mask, SIGUSR1);
+    sigprocmask(SIG_BLOCK, &block_mask, NULL);
+    sigemptyset(&empty_mask);
+
+	vector<Step*> readySteps;
+	int stepCount = recipeSteps->Count();
+
+	while(completeCount < stepCount) {
+		readySteps = recipeSteps->GetReadySteps();
+		for (Step* step : readySteps) {
+			step->running = true;
+			makeTimer(step, step->duration);
+		}
+		
+		
+        sigsuspend(&empty_mask); 
+	}
+
+	while(completedSteps->size() > 0) {
+        sigsuspend(&empty_mask);
+    }
 
 	cout << "Enjoy!" << endl;
+
+	delete completedSteps;
+	delete recipeSteps;
 }

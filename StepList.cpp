@@ -80,7 +80,7 @@ int StepList::Count() {
 vector<Step*> StepList::GetReadySteps() {
 	vector<Step*> result;
 	for(Step* item : stepList) {
-		if(!item->running && item->dependencies.empty()) {
+		if(!item->running && !item->completed && item->dependencies.empty()) {
 			cout << "Step " << item->id << " ready to be run." << endl;
 			result.push_back(item);
 		}

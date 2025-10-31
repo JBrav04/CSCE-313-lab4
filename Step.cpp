@@ -7,6 +7,7 @@ Step::Step(){
     duration = 0;
     dependencies = {};
     running = false;
+    completed = false;
 }
 
 // Constructor
@@ -16,10 +17,12 @@ Step::Step(int _id, string _desc, int _dur, vector<int> _deps) {
     this->duration = _dur;
     this->dependencies = _deps;
     this->running = false;
+    this->completed = false;
 }
 
 Step::~Step() {
-    free(t_id);
+    //free(t_id);
+    timer_delete(this->t_id);
 }
 
 // Removes the dependency from it's dependency list.
